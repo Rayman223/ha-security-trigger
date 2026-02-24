@@ -1,0 +1,31 @@
+alias: Alarme Sécurité - Blocage après Action Manuelle
+description: >-
+  Empêche toute modification automatique jusqu'à la réinitialisation si activée
+  ou désactivée manuellement
+triggers:
+  - entity_id: input_boolean.statut_alarme_securite
+    to:
+      - "off"
+      - "on"
+    trigger: state
+conditions:
+  - condition: template
+    value_template: |-
+      {{ trigger.to_state.context.user_id is not none
+         and trigger.to_state.context.parent_id is none }} 
+actions:
+  - action: input_boolean.turn_on
+    data: {}
+    target:
+      entity_id: input_boolean.securite_blocage_manuel_actif
+  - action: script.discord_notification_personnalisee
+    metadata: {}
+    data:
+      couleur: info
+      channel_id: "1459865652679675915"
+      message: >
+        Alarme {{ 'activée' if trigger.to_state.state == 'on' else 'désactivée'
+        }} manuellement.  L'automatisation est suspendue jusqu'à votre retour à
+        la maison pendant les heures de jour.
+      titre: Alarme Sécurité - Blocage après Action Manuelle
+mode: single

@@ -1,0 +1,59 @@
+alias: Alarme Sécurité - Réinitialisation Mode Manuel
+description: >-
+  Réinitialise le blocage manuel quand Rayman arrive à la maison à l'heure de
+  désactivation
+triggers:
+  - entity_id:
+      - person.rayman_2
+    to:
+      - home
+    trigger: state
+    from:
+      - not_home
+  - at: input_datetime.securite_heure_desactivation
+    trigger: time
+conditions:
+  - condition: state
+    entity_id: person.rayman_2
+    state:
+      - home
+  - condition: template
+    value_template: >
+      {% set heure_activation =
+      states('input_datetime.securite_heure_activation') %} {% set
+      heure_desactivation =
+      states('input_datetime.securite_heure_desactivation') %} {% set
+      heure_actuelle = now().strftime('%H:%M:%S') %}
+
+      {# Si activation est après désactivation (ex: 23:00 -> 07:00, passage
+      minuit) #} {% if heure_activation > heure_desactivation %}
+        {{ heure_actuelle >= heure_desactivation and heure_actuelle < heure_activation }}
+      {# Si activation est avant désactivation (ex: 06:00 -> 22:00, même jour)
+      #} {% else %}
+        {{ heure_actuelle < heure_activation or heure_actuelle >= heure_desactivation }}
+      {% endif %}
+actions:
+  - action: input_boolean.turn_off
+    metadata: {}
+    target:
+      entity_id:
+        - input_boolean.statut_alarme_securite
+        - input_boolean.securite_blocage_manuel_actif
+    data: {}
+  - action: script.discord_notification_personnalisee
+    metadata: {}
+    data:
+      couleur: success
+      channel_id: "1459865652679675915"
+      message: Mode manuel désactivé. L'automatisation reprend le contrôle.
+      titre: Alarme Sécurité - Réinitialisation Mode Manuel
+  - delay:
+      seconds: 2
+  - target:
+      entity_id:
+        - automation.alarme_securite_activation_automatique
+    data:
+      skip_condition: false
+    action: automation.trigger
+    enabled: true
+mode: single
