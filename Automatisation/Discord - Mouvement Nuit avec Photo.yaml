@@ -1,5 +1,5 @@
 alias: Discord - Mouvement Nuit avec Photo
-description: Envoie une photo sur Discord lors d'un mouvement détecté la nuit
+description: Envoie une photo sur Discord lors d'un mouvement détecté quand l'alarme est active
 triggers:
   - entity_id: binary_sensor.salon_person_occupancy
     to: "on"
@@ -7,8 +7,7 @@ triggers:
 conditions:
   - condition: state
     entity_id: input_boolean.statut_alarme_securite
-    state:
-      - "on"
+    state: "on"
 actions:
   - action: camera.snapshot
     metadata: {}
@@ -16,31 +15,14 @@ actions:
       entity_id: camera.salon
     data:
       filename: /config/www/cams/snapshot.jpg
-  - data:
-      message: "👁️ Mouvement Détecté dans le Salon !"
-      target: "1234567890123456789"  # Remplacez par votre ID de canal Discord
-      data:
-        images:
-          - /config/www/cams/snapshot.jpg
-        embed:
-          title: 👁️ Mouvement Détecté
-          description: |
-            **Localisation**: Salon
-            **Heure**: {{ now().strftime('%H:%M:%S') }}
-            **Personnes détectées**: {{ states('sensor.salon_person_count') }}
-          color: 16776960
-          fields:
-            - name: 📍 Zone
-              value: Salon
-              inline: true
-            - name: 👥 Nombre
-              value: "{{ states('sensor.salon_person_count') }} personne(s)"
-              inline: true
-            - name: ⏰ Heure
-              value: "{{ now().strftime('%H:%M:%S') }}"
-              inline: true
-          footer:
-            text: Home Assistant - Alerte Nocturne
-          timestamp: "{{ now().isoformat() }}"
-    action: notify.rayman_home_assistant
+  - action: script.discord_notification_personnalisee
+    metadata: {}
+    data:
+      couleur: warning
+      channel_id: "1459865652679675915"
+      titre: "👁️ Mouvement Détecté"
+      message: >
+        **Localisation** : Salon
+        **Heure** : {{ now().strftime('%H:%M:%S') }}
+        **Personnes détectées** : {{ states('sensor.salon_person_count') }}
 mode: single
