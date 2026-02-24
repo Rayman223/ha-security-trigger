@@ -1,5 +1,5 @@
 alias: Alarme Sécurité - Activation Automatique
-description: Active l'alarme quand Rayman est absent OU présent entre 23h-7h
+description: Active l'alarme quand Rayman est absent OU présent entre les heures d'activation
 triggers:
   - at: input_datetime.securite_heure_activation
     trigger: time
@@ -14,29 +14,20 @@ triggers:
 conditions:
   - condition: state
     entity_id: input_boolean.securite_blocage_manuel_actif
-    state:
-      - "off"
+    state: "off"
 actions:
   - choose:
       - conditions:
           - condition: template
             value_template: >
-              {% set heure_activation =
-              states('input_datetime.securite_heure_activation') %}
+              {% set heure_activation = states('input_datetime.securite_heure_activation') %}
+              {% set heure_desactivation = states('input_datetime.securite_heure_desactivation') %}
+              {% set heure_actuelle = now().strftime('%H:%M:%S') %}
 
-              {% set heure_desactivation =
-              states('input_datetime.securite_heure_desactivation') %}
-
-              {% set heure_actuelle = now().strftime('%H:%M') %}
-
-              {# Si activation est après désactivation (ex: 23:00 -> 07:00,
-              passage minuit) #}
-
+              {# Plage à cheval sur minuit (ex: 23:00:00 -> 07:00:00) #}
               {% if heure_activation > heure_desactivation %}
                 {{ heure_actuelle >= heure_activation or heure_actuelle < heure_desactivation }}
-              {# Si activation est avant désactivation (ex: 22:00 -> 23:00, même
-              jour) #}
-
+              {# Plage sur la même journée (ex: 06:00:00 -> 22:00:00) #}
               {% else %}
                 {{ heure_actuelle >= heure_activation and heure_actuelle < heure_desactivation }}
               {% endif %}
@@ -45,51 +36,9 @@ actions:
               entity_id: input_boolean.statut_alarme_securite
             action: input_boolean.turn_on
             data: {}
-      - conditions:
-          - condition: template
-            value_template: >
-              {% set heure_activation =
-              states('input_datetime.securite_heure_activation') %}
-
-              {% set heure_desactivation =
-              states('input_datetime.securite_heure_desactivation') %}
-
-              {% set heure_actuelle = now().strftime('%H:%M') %}
-
-              {# Si activation est après désactivation (ex: 23:00 -> 07:00,
-              passage minuit) #}
-
-              {% if heure_activation > heure_desactivation %}
-                {{ heure_actuelle >= heure_activation or heure_actuelle < heure_desactivation }}
-              {# Si activation est avant désactivation (ex: 22:00 -> 23:00, même
-              jour) #}
-
-              {% else %}
-                {{ heure_actuelle >= heure_activation and heure_actuelle < heure_desactivation }}
-              {% endif %}
-        sequence:
-          - target:
-              entity_id: input_boolean.statut_alarme_securite
-            action: input_boolean.turn_on
-            data: {}
-      - conditions:
-          - condition: template
-            value_template: >
-              {% set heure_activation =
-              states('input_datetime.securite_heure_activation') %} {% set
-              heure_desactivation =
-              states('input_datetime.securite_heure_desactivation') %} {% set
-              heure_actuelle = now().strftime('%H:%M') %}
-
-              {# Si activation est après désactivation (ex: 23:00 -> 07:00,
-              passage minuit) #} {% if heure_activation > heure_desactivation %}
-                {{ heure_actuelle >= heure_desactivation and heure_actuelle < heure_activation }}
-              {# Si activation est avant désactivation (ex: 22:00 -> 23:00, même
-              jour) #} {% else %}
-                {{ heure_actuelle < heure_activation or heure_actuelle >= heure_desactivation }}
-              {% endif %}
-        sequence:
-          - target:
-              entity_id: input_boolean.statut_alarme_securite
-            action: input_boolean.turn_off
+    default:
+      - target:
+          entity_id: input_boolean.statut_alarme_securite
+        action: input_boolean.turn_off
+        data: {}
 mode: restart
